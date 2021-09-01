@@ -1,9 +1,7 @@
 // hardhat.config.js
 require("dotenv/config")
-require("@nomiclabs/hardhat-etherscan")
 require("@nomiclabs/hardhat-solhint")
 // require("@nomiclabs/hardhat-solpp")
-require("@tenderly/hardhat-tenderly")
 require("@nomiclabs/hardhat-waffle")
 require("hardhat-abi-exporter")
 require("hardhat-deploy")
@@ -28,7 +26,9 @@ task("accounts", "Prints the list of accounts", async (args, hre) => {
 const { removeConsoleLog } = require("hardhat-preprocessor")
 
 const accounts = {
-  mnemonic: process.env.MNEMONIC || "test test test test test test test test test test test junk",
+  mnemonic:
+    process.env.MNEMONIC ||
+    "test test test test test test test test test test test junk",
   accountsBalance: "990000000000000000000",
 }
 
@@ -41,22 +41,6 @@ module.exports = {
     // except: []
   },
   defaultNetwork: "hardhat",
-  etherscan: {
-    // Your API key for Etherscan
-    // Obtain one at https://etherscan.io/
-    apiKey: process.env.ETHERSCAN_API_KEY,
-  },
-  gasReporter: {
-    enabled: process.env.REPORT_GAS ? true : false,
-    currency: "USD",
-    coinmarketcap: process.env.COINMARKETCAP_API_KEY,
-    excludeContracts: ["contracts/mocks/", "contracts/libraries/"],
-  },
-  hardhat: {
-    forking: {
-      url: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_API_KEY}`,
-    },
-  },
   networks: {
     hardhat: {
       chainId: 31337,
@@ -78,7 +62,9 @@ module.exports = {
     },
   },
   preprocess: {
-    eachLine: removeConsoleLog((bre) => bre.network.name !== "hardhat" && bre.network.name !== "localhost"),
+    eachLine: removeConsoleLog(
+      bre => bre.network.name !== "hardhat" && bre.network.name !== "localhost"
+    ),
   },
   solidity: {
     version: "0.6.12",
@@ -92,10 +78,6 @@ module.exports = {
   spdxLicenseIdentifier: {
     overwrite: false,
     runOnCompile: true,
-  },
-  tenderly: {
-    project: process.env.TENDERLY_PROJECT,
-    username: process.env.TENDERLY_USERNAME,
   },
   watcher: {
     compile: {
