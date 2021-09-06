@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/EnumerableSet.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./CerealToken.sol";
+import "./ChocToken.sol";
 
 
 interface IMigratorChef {
@@ -23,14 +23,14 @@ interface IMigratorChef {
     function migrate(IERC20 token) external returns (IERC20);
 }
 
-// Farmer is the master of Cereal. He can make Cereal and he is a fair guy. Or is he?? YOHAHAHA
+// ChocFactory is the master of Choc. He can make Choc and he is a fair guy. Or is he?? YOHAHAHA
 //
 // Note that it's ownable and the owner wields tremendous power. The ownership
-// will be transferred to a governance smart contract once CEREAL is sufficiently
+// will be transferred to a governance smart contract once CHOC is sufficiently
 // distributed and the community can show to govern itself.
 //
 // Have fun reading it. Hopefully it's bug-free. God bless.
-contract Farmer is Ownable {
+contract ChocFactory is Ownable {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
@@ -39,13 +39,13 @@ contract Farmer is Ownable {
         uint256 amount;     // How many LP tokens the user has provided.
         uint256 rewardDebt; // Reward debt. See explanation below.
         //
-        // We do some fancy math here. Basically, any point in time, the amount of CEREALs
+        // We do some fancy math here. Basically, any point in time, the amount of CHOCs
         // entitled to a user but is pending to be distributed is:
         //
-        //   pending reward = (user.amount * pool.accCerealPerShare) - user.rewardDebt
+        //   pending reward = (user.amount * pool.accChocPerShare) - user.rewardDebt
         //
         // Whenever a user deposits or withdraws LP tokens to a pool. Here's what happens:
-        //   1. The pool's `accCerealPerShare` (and `lastRewardBlock`) gets updated.
+        //   1. The pool's `accChocPerShare` (and `lastRewardBlock`) gets updated.
         //   2. User receives the pending reward sent to his/her address.
         //   3. User's `amount` gets updated.
         //   4. User's `rewardDebt` gets updated.
@@ -54,20 +54,20 @@ contract Farmer is Ownable {
     // Info of each pool.
     struct PoolInfo {
         IERC20 lpToken;           // Address of LP token contract.
-        uint256 allocPoint;       // How many allocation points assigned to this pool. CEREALs to distribute per block.
-        uint256 lastRewardBlock;  // Last block number that CEREALs distribution occurs.
-        uint256 accCerealPerShare; // Accumulated CEREALs per share, times 1e12. See below.
+        uint256 allocPoint;       // How many allocation points assigned to this pool. CHOCs to distribute per block.
+        uint256 lastRewardBlock;  // Last block number that CHOCs distribution occurs.
+        uint256 accChocPerShare; // Accumulated CHOCs per share, times 1e12. See below.
     }
 
-    // The CEREAL TOKEN!
-    CerealToken public cereal;
+    // The CHOC TOKEN!
+    ChocToken public choc;
     // Dev address.
     address public devaddr;
-    // Block number when bonus CEREAL period ends.
+    // Block number when bonus CHOC period ends.
     uint256 public bonusEndBlock;
-    // CEREAL tokens created per block.
-    uint256 public cerealPerBlock;
-    // Bonus muliplier for early cereal makers.
+    // CHOC tokens created per block.
+    uint256 public chocPerBlock;
+    // Bonus muliplier for early choc makers.
     uint256 public constant BONUS_MULTIPLIER = 10;
     // The migrator contract. It has a lot of power. Can only be set through governance (owner).
     IMigratorChef public migrator;
@@ -78,7 +78,7 @@ contract Farmer is Ownable {
     mapping (uint256 => mapping (address => UserInfo)) public userInfo;
     // Total allocation points. Must be the sum of all allocation points in all pools.
     uint256 public totalAllocPoint = 0;
-    // The block number when CEREAL mining starts.
+    // The block number when CHOC mining starts.
     uint256 public startBlock;
 
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
@@ -86,15 +86,15 @@ contract Farmer is Ownable {
     event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256 amount);
 
     constructor(
-        CerealToken _cereal,
+        ChocToken _choc,
         address _devaddr,
-        uint256 _cerealPerBlock,
+        uint256 _chocPerBlock,
         uint256 _startBlock,
         uint256 _bonusEndBlock
     ) public {
-        cereal = _cereal;
+        choc = _choc;
         devaddr = _devaddr;
-        cerealPerBlock = _cerealPerBlock;
+        chocPerBlock = _chocPerBlock;
         bonusEndBlock = _bonusEndBlock;
         startBlock = _startBlock;
     }
@@ -115,11 +115,11 @@ contract Farmer is Ownable {
             lpToken: _lpToken,
             allocPoint: _allocPoint,
             lastRewardBlock: lastRewardBlock,
-            accCerealPerShare: 0
+            accChocPerShare: 0
         }));
     }
 
-    // Update the given pool's Cereal allocation point. Can only be called by the owner.
+    // Update the given pool's Choc allocation point. Can only be called by the owner.
     function set(uint256 _pid, uint256 _allocPoint, bool _withUpdate) public onlyOwner {
         if (_withUpdate) {
             massUpdatePools();
@@ -158,18 +158,18 @@ contract Farmer is Ownable {
         }
     }
 
-    // View function to see pending CEREALs on frontend.
-    function pendingCereal(uint256 _pid, address _user) external view returns (uint256) {
+    // View function to see pending CHOCs on frontend.
+    function pendingChoc(uint256 _pid, address _user) external view returns (uint256) {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][_user];
-        uint256 accCerealPerShare = pool.accCerealPerShare;
+        uint256 accChocPerShare = pool.accChocPerShare;
         uint256 lpSupply = pool.lpToken.balanceOf(address(this));
         if (block.number > pool.lastRewardBlock && lpSupply != 0) {
             uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
-            uint256 cerealReward = multiplier.mul(cerealPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
-            accCerealPerShare = accCerealPerShare.add(cerealReward.mul(1e12).div(lpSupply));
+            uint256 chocReward = multiplier.mul(chocPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
+            accChocPerShare = accChocPerShare.add(chocReward.mul(1e12).div(lpSupply));
         }
-        return user.amount.mul(accCerealPerShare).div(1e12).sub(user.rewardDebt);
+        return user.amount.mul(accChocPerShare).div(1e12).sub(user.rewardDebt);
     }
 
     // Update reward variables for all pools. Be careful of gas spending!
@@ -192,47 +192,47 @@ contract Farmer is Ownable {
             return;
         }
         uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
-        uint256 cerealReward = multiplier.mul(cerealPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
-        cereal.mint(devaddr, cerealReward.div(10));
-        cereal.mint(address(this), cerealReward);
-        pool.accCerealPerShare = pool.accCerealPerShare.add(cerealReward.mul(1e12).div(lpSupply));
+        uint256 chocReward = multiplier.mul(chocPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
+        choc.mint(devaddr, chocReward.div(10));
+        choc.mint(address(this), chocReward);
+        pool.accChocPerShare = pool.accChocPerShare.add(chocReward.mul(1e12).div(lpSupply));
         pool.lastRewardBlock = block.number;
     }
 
-    // Deposit LP tokens to Farmer for CEREAL allocation.
+    // Deposit LP tokens to ChocFactory for CHOC allocation.
     function deposit(uint256 _pid, uint256 _amount) public {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         updatePool(_pid);
         if (user.amount > 0) {
-            uint256 pending = user.amount.mul(pool.accCerealPerShare).div(1e12).sub(user.rewardDebt);
+            uint256 pending = user.amount.mul(pool.accChocPerShare).div(1e12).sub(user.rewardDebt);
             if(pending > 0) {
-                safeCerealTransfer(msg.sender, pending);
+                safeChocTransfer(msg.sender, pending);
             }
         }
         if(_amount > 0) {
             pool.lpToken.safeTransferFrom(address(msg.sender), address(this), _amount);
             user.amount = user.amount.add(_amount);
         }
-        user.rewardDebt = user.amount.mul(pool.accCerealPerShare).div(1e12);
+        user.rewardDebt = user.amount.mul(pool.accChocPerShare).div(1e12);
         emit Deposit(msg.sender, _pid, _amount);
     }
 
-    // Withdraw LP tokens from Farmer.
+    // Withdraw LP tokens from ChocFactory.
     function withdraw(uint256 _pid, uint256 _amount) public {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         require(user.amount >= _amount, "withdraw: not good");
         updatePool(_pid);
-        uint256 pending = user.amount.mul(pool.accCerealPerShare).div(1e12).sub(user.rewardDebt);
+        uint256 pending = user.amount.mul(pool.accChocPerShare).div(1e12).sub(user.rewardDebt);
         if(pending > 0) {
-            safeCerealTransfer(msg.sender, pending);
+            safeChocTransfer(msg.sender, pending);
         }
         if(_amount > 0) {
             user.amount = user.amount.sub(_amount);
             pool.lpToken.safeTransfer(address(msg.sender), _amount);
         }
-        user.rewardDebt = user.amount.mul(pool.accCerealPerShare).div(1e12);
+        user.rewardDebt = user.amount.mul(pool.accChocPerShare).div(1e12);
         emit Withdraw(msg.sender, _pid, _amount);
     }
 
@@ -247,13 +247,13 @@ contract Farmer is Ownable {
         emit EmergencyWithdraw(msg.sender, _pid, amount);
     }
 
-    // Safe cereal transfer function, just in case if rounding error causes pool to not have enough CEREALs.
-    function safeCerealTransfer(address _to, uint256 _amount) internal {
-        uint256 cerealBal = cereal.balanceOf(address(this));
-        if (_amount > cerealBal) {
-            cereal.transfer(_to, cerealBal);
+    // Safe choc transfer function, just in case if rounding error causes pool to not have enough CHOCs.
+    function safeChocTransfer(address _to, uint256 _amount) internal {
+        uint256 chocBal = choc.balanceOf(address(this));
+        if (_amount > chocBal) {
+            choc.transfer(_to, chocBal);
         } else {
-            cereal.transfer(_to, _amount);
+            choc.transfer(_to, _amount);
         }
     }
 

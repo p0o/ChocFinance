@@ -4,13 +4,14 @@ pragma solidity 0.6.12;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "./CerealToken.sol";
+import "hardhat/console.sol";
+import "./ChocToken.sol";
 
 contract EarlyBirdPool is Ownable {
   using SafeMath for uint256;
-  // Amount of cereals rewarded per 1 BCH per hour
+  // Amount of chocs rewarded per 1 BCH per hour
   // We use a fixed number of 600 blocks to determine 1 hour, not block.timestamp
-  uint16 cerealsPerHour = 100;
+  uint16 chocsPerHour = 100;
 
   struct Stake {
     uint256 amount;
@@ -21,13 +22,13 @@ contract EarlyBirdPool is Ownable {
 
   mapping (address => Stake) public stakers;
 
-  CerealToken cereal;
-  address cerealDev;
+  ChocToken choc;
+  address chocDev;
 
-  constructor(CerealToken _cereal, uint256 _blocksToLive) public {
-    cereal = _cereal;
+  constructor(ChocToken _choc, uint256 _blocksToLive) public {
+    choc = _choc;
     endBlock = _blocksToLive.add(block.number);
-    cerealDev = msg.sender;
+    chocDev = msg.sender;
   }
 
   function getBalance(address staker) view public returns(uint256) {
@@ -56,9 +57,9 @@ contract EarlyBirdPool is Ownable {
     Stake storage staker = stakers[_staker];
     if (staker.amount > 0) {
       // calculate user's rewards, mint them and reset the fromBlock
-      uint256 pendingReward = staker.amount.div(720).mul(cerealsPerHour).div(1e12);
-      cereal.mint(_staker, pendingReward.sub(pendingReward.div(10)));
-      cereal.mint(cerealDev, pendingReward.div(10));
+      uint256 pendingReward = staker.amount.div(720).mul(chocsPerHour).div(1e12);
+      choc.mint(_staker, pendingReward.sub(pendingReward.div(10)));
+      choc.mint(chocDev, pendingReward.div(10));
       staker.amount += _amount;
       staker.fromBlock = block.number;
     } else {
@@ -73,10 +74,11 @@ contract EarlyBirdPool is Ownable {
   }
 
   // to be shown to the user in the front-end 
-  function pendingCereal() external view returns(uint256){
+  function pendingChoc() external view returns(uint256){
     Stake memory staker = stakers[msg.sender];
     uint256 blockDiff = block.number - staker.fromBlock;
-    uint256 pending = staker.amount.mul(blockDiff).mul(cerealsPerHour).div(600).div(1e18);
+    console.log('Block diff', blockDiff);
+    uint256 pending = staker.amount.mul(blockDiff).mul(chocsPerHour).div(600).div(1e18);
     return pending.sub(pending.div(10));
   }
 
@@ -88,14 +90,14 @@ contract EarlyBirdPool is Ownable {
     uint256 stakerAmount = staker.amount;
     // calculate pending
     uint256 blockDiff = block.number - staker.fromBlock;
-    uint256 pending = staker.amount.mul(blockDiff).mul(cerealsPerHour).div(600).div(1e18);
+    uint256 pending = staker.amount.mul(blockDiff).mul(chocsPerHour).div(600).div(1e18);
     // Safeguard for re-entrancy attack
     staker.amount = 0;
     staker.fromBlock = 0;
     _safeSend(msg.sender, stakerAmount);
 
     // Mint rewards
-    cereal.mint(msg.sender, pending.sub(pending.div(10)));
-    cereal.mint(cerealDev, pending.div(10));
+    choc.mint(msg.sender, pending.sub(pending.div(10)));
+    choc.mint(chocDev, pending.div(10));
   }
 }

@@ -14,7 +14,7 @@ describe("EarlyBirdPool", function() {
     this.dev = this.signers[3]
     this.minter = this.signers[4]
 
-    this.CerealToken = await ethers.getContractFactory("CerealToken", this.dev)
+    this.ChocToken = await ethers.getContractFactory("ChocToken", this.dev)
     this.EarlyBirdPool = await ethers.getContractFactory(
       "EarlyBirdPool",
       this.dev
@@ -23,20 +23,20 @@ describe("EarlyBirdPool", function() {
   })
 
   beforeEach(async function() {
-    this.cereal = await this.CerealToken.deploy()
-    await this.cereal.deployed()
-    this.earlyBird = await this.EarlyBirdPool.deploy(this.cereal.address, 100)
+    this.choc = await this.ChocToken.deploy()
+    await this.choc.deployed()
+    this.earlyBird = await this.EarlyBirdPool.deploy(this.choc.address, 100)
     await this.earlyBird.deployed()
     // storing the start block for later
     this.startBlock = await ethers.provider.getBlockNumber()
 
-    // make EarlyBird the owner of the Cereal
-    await this.cereal.transferOwnership(this.earlyBird.address)
+    // make EarlyBird the owner of the Choc
+    await this.choc.transferOwnership(this.earlyBird.address)
   })
 
   it("should set the ending block number correctly", async function() {
     const block = await this.earlyBird.endBlock()
-    expect(block).to.equal(100 + this.startBlock) // 1 block is passed since cereal.transferOwnership
+    expect(block).to.equal(100 + this.startBlock) // 1 block is passed since choc.transferOwnership
   })
 
   it("should allow users to deposit", async function() {
@@ -48,7 +48,7 @@ describe("EarlyBirdPool", function() {
     expect(ethers.utils.formatEther(balance)).to.equal("10.5")
   })
 
-  it("should calculate cereal rewards correctly", async function() {
+  it("should calculate choc rewards correctly", async function() {
     const bobWallet = this.earlyBird.connect(this.bob)
     await bobWallet.deposit({
       from: this.bob.address,
@@ -58,13 +58,13 @@ describe("EarlyBirdPool", function() {
     const rewardsPerHour = 100
     const blocksPerHour = 600
 
-    const pending1 = await bobWallet.pendingCereal()
+    const pending1 = await bobWallet.pendingChoc()
     expect(pending1.toString()).to.equal("0")
 
     // in 10 blocks (~1 min)
     await time.advanceBlockTo(currentBlock + 10)
 
-    const pending2 = await bobWallet.pendingCereal()
+    const pending2 = await bobWallet.pendingChoc()
     let rewardFor10Blocks = Math.floor(
       (10 * rewardsPerHour * 10) / blocksPerHour
     )
@@ -75,8 +75,8 @@ describe("EarlyBirdPool", function() {
 
     // In 600 blocks (~one hour)
     await time.advanceBlockTo(currentBlock + 590)
-    const pending3 = await bobWallet.pendingCereal()
-    // 10 BCH staked in one hour should have a reward of 900 CREALs
+    const pending3 = await bobWallet.pendingChoc()
+    // 10 BCH staked in one hour should have a reward of 900 CHOCs
     expect(pending3.toNumber()).to.equal(900)
   })
 
