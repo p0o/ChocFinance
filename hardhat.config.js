@@ -26,10 +26,8 @@ task("accounts", "Prints the list of accounts", async (args, hre) => {
 const { removeConsoleLog } = require("hardhat-preprocessor")
 
 const accounts = {
-  mnemonic:
-    process.env.MNEMONIC ||
-    "test test test test test test test test test test test junk",
-  accountsBalance: "990000000000000000000",
+  mnemonic: process.env.MNEMONIC,
+  path: "m/44'/60'/0'/0",
 }
 
 module.exports = {
@@ -40,23 +38,31 @@ module.exports = {
     // only: [],
     // except: []
   },
+  namedAccounts: {
+    deployer: {
+      default: 0,
+    },
+    dev: {
+      // Default to 1
+      default: 1,
+      // dev address mainnet
+      // 1: "",
+    },
+  },
   defaultNetwork: "hardhat",
   networks: {
     hardhat: {
       chainId: 31337,
       accounts,
+      mining: {
+        auto: true,
+        interval: 6000,
+      },
     },
-    ropsten: {
-      url: `https://ropsten.infura.io/v3/${process.env.INFURA_API_KEY}`,
+    Amber: {
+      url: `https://moeing.tech:9545`,
       accounts,
-      chainId: 3,
-      live: true,
-      saveDeployments: true,
-    },
-    kovan: {
-      url: `https://kovan.infura.io/v3/${process.env.INFURA_API_KEY}`,
-      accounts,
-      chainId: 42,
+      chainId: 10001,
       live: true,
       saveDeployments: true,
     },
