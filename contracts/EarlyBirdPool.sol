@@ -11,7 +11,7 @@ contract EarlyBirdPool is Ownable {
   using SafeMath for uint256;
   // Amount of chocs rewarded per 1 BCH per hour
   // We use a fixed number of 600 blocks to determine 1 hour, not block.timestamp
-  uint16 chocsPerHour = 100;
+  uint256 chocsPerHour = 10 * 1e18;
 
   struct Stake {
     uint256 amount;
