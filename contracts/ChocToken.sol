@@ -11,7 +11,18 @@ contract ChocToken is ERC20("ChocToken", "CHOC"), Ownable {
     /// @notice Creates `_amount` token to `_to`. Must only be called by the owner (MasterChef).
     function mint(address _to, uint256 _amount) public onlyOwner {
         _mint(_to, _amount);
-        _moveDelegates(address(0), _delegates[_to], _amount);
+    }
+
+    // To fix an exploit with Sushi's governance which doesn't move delegates after transfer
+    // This hook will move the delegates after mint, burn and transfer 
+    function _beforeTokenTransfer(
+        address from,
+        address to,
+        uint256 amount
+    ) internal virtual override(ERC20) {
+        super._beforeTokenTransfer(from, to, amount);
+
+        _moveDelegates(_delegates[from], _delegates[to], amount);
     }
 
     // Copied and modified from YAM code:
