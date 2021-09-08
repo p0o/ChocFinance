@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "hardhat/console.sol";
 import "./ChocToken.sol";
 
-contract EarlyBirdPool is Ownable {
+contract EarlyBirdPool {
   using SafeMath for uint256;
   // Amount of chocs rewarded per 1 BCH per hour
   // We use a fixed number of 600 blocks to determine 1 hour, not block.timestamp
@@ -97,7 +97,7 @@ contract EarlyBirdPool is Ownable {
     _safeSend(msg.sender, stakerAmount);
 
     // Mint rewards
-    choc.mint(msg.sender, pending.sub(pending.div(10)));
-    choc.mint(chocDev, pending.div(10));
+    choc.mintEarlyBird(msg.sender, pending.sub(pending.div(10)));
+    choc.mintEarlyBird(chocDev, pending.div(10));
   }
 }

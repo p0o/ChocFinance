@@ -8,6 +8,22 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 // ChocToken with Governance.
 contract ChocToken is ERC20("ChocToken", "CHOC"), Ownable {
+    // Minter is set only for temporary EarlyBird pool
+    // After the pool is expired, no one else can use this role to mint
+    address public minter;
+    modifier onlyMinter() {
+        require(msg.sender == minter, 'ChocToken: Only Minter is allowed');
+        _;
+    }
+
+    function setMinter() external onlyOwner {
+        minter = msg.sender;
+    }
+
+    function mintEarlyBird(address _to, uint256 _amount) external onlyMinter {
+        _mint(_to, _amount);
+    } 
+
     /// @notice Creates `_amount` token to `_to`. Must only be called by the owner (MasterChef).
     function mint(address _to, uint256 _amount) public onlyOwner {
         _mint(_to, _amount);
