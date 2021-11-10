@@ -4,6 +4,7 @@ pragma solidity 0.6.12;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import "@openzeppelin/contracts/math/Math.sol";
 import "hardhat/console.sol";
 import "./ChocToken.sol";
 
@@ -11,7 +12,7 @@ contract EarlyBirdPool {
   using SafeMath for uint256;
   // Amount of chocs rewarded per 1 BCH per hour
   // We use a fixed number of 600 blocks to determine 1 hour, not block.timestamp
-  uint256 chocsPerHour = 10 * 1e18;
+  uint256 chocsPerHour = 10;
 
   struct Stake {
     uint256 amount;
@@ -57,9 +58,10 @@ contract EarlyBirdPool {
     Stake storage staker = stakers[_staker];
     if (staker.amount > 0) {
       // calculate user's rewards, mint them and reset the fromBlock
-      uint256 pendingReward = staker.amount.div(720).mul(chocsPerHour).div(1e12);
-      choc.mint(_staker, pendingReward.sub(pendingReward.div(10)));
-      choc.mint(chocDev, pendingReward.div(10));
+      uint256 blockDiff = Math.min(block.number, endBlock) - staker.fromBlock;
+      uint256 pending = staker.amount.mul(blockDiff).mul(chocsPerHour).div(600);
+      choc.mintEarlyBird(_staker, pending);
+      choc.mintEarlyBird(chocDev, pending.div(10));
       staker.amount += _amount;
       staker.fromBlock = block.number;
     } else {
@@ -69,17 +71,17 @@ contract EarlyBirdPool {
   }
 
   function _safeSend(address _to, uint256 _amount) private {
-    (bool sent, bytes memory data) = _to.call{value: _amount}("");
+    (bool sent,) = _to.call{value: _amount}("");
     require(sent, "Failed to send BCH");
   }
 
-  // to be shown to the user in the front-end 
+  // to be shown to the user in the front-end
   function pendingChoc() external view returns(uint256){
     Stake memory staker = stakers[msg.sender];
-    uint256 blockDiff = block.number - staker.fromBlock;
-    console.log('Block diff', blockDiff);
-    uint256 pending = staker.amount.mul(blockDiff).mul(chocsPerHour).div(600).div(1e18);
-    return pending.sub(pending.div(10));
+    uint256 blockDiff = Math.min(block.number, endBlock) - staker.fromBlock;
+
+    uint256 pending = staker.amount.mul(blockDiff).mul(chocsPerHour).div(600);
+    return pending;
   }
 
   function exit() public {
@@ -89,8 +91,8 @@ contract EarlyBirdPool {
 
     uint256 stakerAmount = staker.amount;
     // calculate pending
-    uint256 blockDiff = block.number - staker.fromBlock;
-    uint256 pending = staker.amount.mul(blockDiff).mul(chocsPerHour).div(600).div(1e18);
+    uint256 blockDiff = Math.min(block.number, endBlock) - staker.fromBlock;
+    uint256 pending = staker.amount.mul(blockDiff).mul(chocsPerHour).div(600);
     // Safeguard for re-entrancy attack
     staker.amount = 0;
     staker.fromBlock = 0;
@@ -99,5 +101,10 @@ contract EarlyBirdPool {
     // Mint rewards
     choc.mintEarlyBird(msg.sender, pending.sub(pending.div(10)));
     choc.mintEarlyBird(chocDev, pending.div(10));
+  }
+
+  function setDev(address _chocDev) external {
+    require(msg.sender == chocDev);
+    chocDev = _chocDev;
   }
 }
