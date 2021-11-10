@@ -40,10 +40,6 @@ contract EarlyBirdPool {
     _deposit();
   }
 
-  fallback() external payable {
-    _deposit();
-  }
-
   function deposit() external payable {
     _deposit();
   }
