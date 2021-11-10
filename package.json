@@ -1,8 +1,8 @@
 {
-  "name": "@sushiswap/core",
-  "version": "1.4.1",
+  "name": "@chocfinance/contracts",
+  "version": "1.0.0",
   "license": "MIT",
-  "description": "🎛 Core contracts for the SushiSwap protocol",
+  "description": "Smart Contracts for Choc Finance protocol",
   "files": [
     "contracts",
     "build"
@@ -17,9 +17,10 @@
   },
   "homepage": "https://github.com/sushiswap/sushiswap#readme",
   "keywords": [
-    "uniswap",
-    "sushiswap",
-    "ethereum"
+    "chocfinance",
+    "smartbch",
+    "web3",
+    "defi"
   ],
   "scripts": {
     "build": "hardhat compile",
@@ -52,7 +53,7 @@
     "dotenv": "^8.2.0",
     "ethereum-waffle": "^3.0.0",
     "ethers": "^5.0.0",
-    "hardhat": "^2.0.6",
+    "hardhat": "^2.6.4",
     "hardhat-abi-exporter": "^2.0.8",
     "hardhat-deploy": "^0.7.0-beta.43",
     "hardhat-deploy-ethers": "^0.3.0-beta.7",
