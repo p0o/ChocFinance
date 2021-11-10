@@ -3,11 +3,12 @@
 pragma solidity 0.6.12;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20Burnable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 
 // ChocToken with Governance.
-contract ChocToken is ERC20("ChocToken", "CHOC"), Ownable {
+contract ChocToken is ERC20("ChocToken", "CHOC"), Ownable, ERC20Burnable {
     // Minter is set only for temporary EarlyBird pool
     // After the pool is expired, no one else can use this role to mint
     address public minter;
@@ -16,8 +17,8 @@ contract ChocToken is ERC20("ChocToken", "CHOC"), Ownable {
         _;
     }
 
-    function setMinter() external onlyOwner {
-        minter = msg.sender;
+    function setMinter(address _minter) external onlyOwner {
+        minter = _minter;
     }
 
     function mintEarlyBird(address _to, uint256 _amount) external onlyMinter {
@@ -143,9 +144,9 @@ contract ChocToken is ERC20("ChocToken", "CHOC"), Ownable {
         );
 
         address signatory = ecrecover(digest, v, r, s);
-        require(signatory != address(0), "CEREAL::delegateBySig: invalid signature");
-        require(nonce == nonces[signatory]++, "CEREAL::delegateBySig: invalid nonce");
-        require(now <= expiry, "CEREAL::delegateBySig: signature expired");
+        require(signatory != address(0), "CHOC::delegateBySig: invalid signature");
+        require(nonce == nonces[signatory]++, "CHOC::delegateBySig: invalid nonce");
+        require(now <= expiry, "CHOC::delegateBySig: signature expired");
         return _delegate(signatory, delegatee);
     }
 
@@ -175,7 +176,7 @@ contract ChocToken is ERC20("ChocToken", "CHOC"), Ownable {
         view
         returns (uint256)
     {
-        require(blockNumber < block.number, "CEREAL::getPriorVotes: not yet determined");
+        require(blockNumber < block.number, "CHOC::getPriorVotes: not yet determined");
 
         uint32 nCheckpoints = numCheckpoints[account];
         if (nCheckpoints == 0) {
@@ -212,7 +213,7 @@ contract ChocToken is ERC20("ChocToken", "CHOC"), Ownable {
         internal
     {
         address currentDelegate = _delegates[delegator];
-        uint256 delegatorBalance = balanceOf(delegator); // balance of underlying CEREALs (not scaled);
+        uint256 delegatorBalance = balanceOf(delegator); // balance of underlying CHOCs (not scaled);
         _delegates[delegator] = delegatee;
 
         emit DelegateChanged(delegator, currentDelegate, delegatee);
@@ -248,7 +249,7 @@ contract ChocToken is ERC20("ChocToken", "CHOC"), Ownable {
     )
         internal
     {
-        uint32 blockNumber = safe32(block.number, "CEREAL::_writeCheckpoint: block number exceeds 32 bits");
+        uint32 blockNumber = safe32(block.number, "CHOC::_writeCheckpoint: block number exceeds 32 bits");
 
         if (nCheckpoints > 0 && checkpoints[delegatee][nCheckpoints - 1].fromBlock == blockNumber) {
             checkpoints[delegatee][nCheckpoints - 1].votes = newVotes;
