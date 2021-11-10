@@ -58,9 +58,11 @@ module.exports = {
         auto: true,
         interval: 6000,
       },
+      gasPrice: 100,
+      initialBaseFeePerGas: 100,
     },
     Amber: {
-      url: `https://moeing.tech:9545`,
+      url: `http://35.220.203.194:8545`,
       accounts,
       chainId: 10001,
       live: true,
