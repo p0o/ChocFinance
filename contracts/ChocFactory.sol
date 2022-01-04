@@ -59,16 +59,19 @@ contract ChocFactory is Ownable {
         uint256 accChocPerShare; // Accumulated CHOCs per share, times 1e12. See below.
     }
 
+    struct InflationRate {
+        uint256 nextRate;
+        uint256 prevRate;
+        uint256 fromBlock;
+    }
+
     // The CHOC TOKEN!
     ChocToken public choc;
     // Dev address.
     address public devaddr;
-    // Block number when bonus CHOC period ends.
-    uint256 public bonusEndBlock;
     // CHOC tokens created per block.
-    uint256 public chocPerBlock;
-    // Bonus muliplier for early choc makers.
-    uint256 public constant BONUS_MULTIPLIER = 10;
+    // Pay attention that this value will be influenced by the inflation rate
+    uint256 public chocPerBlock = 1e15; // 0.001 CHOC
     // The migrator contract. It has a lot of power. Can only be set through governance (owner).
     IMigratorChef public migrator;
 
@@ -80,6 +83,8 @@ contract ChocFactory is Ownable {
     uint256 public totalAllocPoint = 0;
     // The block number when CHOC mining starts.
     uint256 public startBlock;
+    // Inflation rate the ultimate multiplier of all calculations
+    InflationRate public inflationRate;
 
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
     event Withdraw(address indexed user, uint256 indexed pid, uint256 amount);
@@ -88,15 +93,13 @@ contract ChocFactory is Ownable {
     constructor(
         ChocToken _choc,
         address _devaddr,
-        uint256 _chocPerBlock,
-        uint256 _startBlock,
-        uint256 _bonusEndBlock
+        uint256 _startBlock
     ) public {
         choc = _choc;
         devaddr = _devaddr;
-        chocPerBlock = _chocPerBlock;
-        bonusEndBlock = _bonusEndBlock;
         startBlock = _startBlock;
+        inflationRate.nextRate = 10000;
+        inflationRate.fromBlock = block.number;
     }
 
     function poolLength() external view returns (uint256) {
@@ -145,15 +148,26 @@ contract ChocFactory is Ownable {
         pool.lpToken = newLpToken;
     }
 
+    // Adjust the inflation rate from a specific block
+    function adjustEconomy(uint256 _from, uint256 _rate) external onlyOwner {
+        require(_from >= block.number + 100, "Small block number");
+
+        if (inflationRate.fromBlock < block.number) {
+            inflationRate.prevRate = inflationRate.nextRate;
+        }
+        inflationRate.nextRate = _rate;
+        inflationRate.fromBlock = _from;
+    }
+
     // Return reward multiplier over the given _from to _to block.
     function getMultiplier(uint256 _from, uint256 _to) public view returns (uint256) {
-        if (_to <= bonusEndBlock) {
-            return _to.sub(_from).mul(BONUS_MULTIPLIER);
-        } else if (_from >= bonusEndBlock) {
-            return _to.sub(_from);
+        if (inflationRate.fromBlock <= _from) {
+            return _to.sub(_from).mul(inflationRate.nextRate);
+        } else if (inflationRate.fromBlock >= _to) {
+            return _to.sub(_from).mul(inflationRate.prevRate);
         } else {
-            return bonusEndBlock.sub(_from).mul(BONUS_MULTIPLIER).add(
-                _to.sub(bonusEndBlock)
+            return _to.sub(inflationRate.fromBlock).mul(inflationRate.nextRate).add(
+                inflationRate.fromBlock.sub(_from).mul(inflationRate.prevRate)
             );
         }
     }
