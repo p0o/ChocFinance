@@ -25,9 +25,7 @@ describe("ChocFactory", function() {
     this.factory = await this.ChocFactory.deploy(
       this.choc.address,
       this.dev.address,
-      "1000",
-      "0",
-      "1000"
+      "100"
     )
     await this.factory.deployed()
 
@@ -46,9 +44,7 @@ describe("ChocFactory", function() {
     this.factory = await this.ChocFactory.deploy(
       this.choc.address,
       this.dev.address,
-      "1000",
-      "0",
-      "1000"
+      "100"
     )
     await this.factory.deployed()
 
@@ -93,13 +89,10 @@ describe("ChocFactory", function() {
     })
 
     it("should allow emergency withdraw", async function() {
-      // 100 per block farming rate starting at block 100 with bonus until block 1000
       this.factory = await this.ChocFactory.deploy(
         this.choc.address,
         this.dev.address,
-        "100",
-        "100",
-        "1000"
+        "100"
       )
       await this.factory.deployed()
 
@@ -123,13 +116,10 @@ describe("ChocFactory", function() {
     })
 
     it("should give out CHOCs only after farming time", async function() {
-      // 100 per block farming rate starting at block 100 with bonus until block 1000
       this.factory = await this.ChocFactory.deploy(
         this.choc.address,
         this.dev.address,
-        "100",
-        "100",
-        "1000"
+        "100"
       )
       await this.factory.deployed()
 
@@ -166,26 +156,32 @@ describe("ChocFactory", function() {
       await this.factory
         .connect(this.bob)
         .deposit(0, "0", { from: this.bob.address }) // block 101
-      expect(await this.choc.balanceOf(this.bob.address)).to.equal("1000")
+      expect(await this.choc.balanceOf(this.bob.address)).to.equal(
+        ethers.utils.parseUnits("10", 18).toString()
+      ) // 10.0 CHOC
 
       await time.advanceBlockTo("104")
       await this.factory
         .connect(this.bob)
         .deposit(0, "0", { from: this.bob.address }) // block 105
 
-      expect(await this.choc.balanceOf(this.bob.address)).to.equal("5000")
-      expect(await this.choc.balanceOf(this.dev.address)).to.equal("500")
-      expect(await this.choc.totalSupply()).to.equal("5500")
+      expect(await this.choc.balanceOf(this.bob.address)).to.equal(
+        ethers.utils.parseUnits("50", 18).toString() // 50.0 CHOC
+      )
+      expect(await this.choc.balanceOf(this.dev.address)).to.equal(
+        ethers.utils.parseUnits("5", 18).toString() // 5.0 CHOC
+      )
+      expect(await this.choc.totalSupply()).to.equal(
+        ethers.utils.parseUnits("55", 18).toString() // 55.0 CHOC
+      )
     })
 
     it("should not distribute CHOCs if no one deposit", async function() {
-      // 100 per block farming rate starting at block 200 with bonus until block 1000
+      // 10 per block farming rate starting at block 200
       this.factory = await this.ChocFactory.deploy(
         this.choc.address,
         this.dev.address,
-        "100",
-        "200",
-        "1000"
+        "200"
       )
       await this.factory.deployed()
       await this.choc.transferOwnership(this.factory.address)
@@ -209,9 +205,15 @@ describe("ChocFactory", function() {
       await this.factory
         .connect(this.bob)
         .withdraw(0, "10", { from: this.bob.address }) // block 220
-      expect(await this.choc.totalSupply()).to.equal("11000")
-      expect(await this.choc.balanceOf(this.bob.address)).to.equal("10000")
-      expect(await this.choc.balanceOf(this.dev.address)).to.equal("1000")
+      expect(await this.choc.totalSupply()).to.equal(
+        ethers.utils.parseUnits("110", 18)
+      )
+      expect(await this.choc.balanceOf(this.bob.address)).to.equal(
+        ethers.utils.parseUnits("100", 18)
+      )
+      expect(await this.choc.balanceOf(this.dev.address)).to.equal(
+        ethers.utils.parseUnits("10", 18)
+      )
       expect(await this.lp.balanceOf(this.bob.address)).to.equal("1000")
     })
 
@@ -220,9 +222,7 @@ describe("ChocFactory", function() {
       this.factory = await this.ChocFactory.deploy(
         this.choc.address,
         this.dev.address,
-        "100",
-        "300",
-        "1000"
+        "100"
       )
       await this.factory.deployed()
       await this.choc.transferOwnership(this.factory.address)
@@ -252,30 +252,48 @@ describe("ChocFactory", function() {
         .connect(this.carol)
         .deposit(0, "30", { from: this.carol.address })
       // Alice deposits 10 more LPs at block 320. At this point:
-      //   Alice should have: 4*1000 + 4*1/3*1000 + 2*1/6*1000 = 5666
-      //   ChocFactory should have the remaining: 10000 - 5666 = 4334
+      //   Alice should have: 4*10e18 + 4*1/3*10e18 + 2*1/6*10e18 = 56.666666666666666666
+      //   ChocFactory should have the remaining: 10000 - 5666 = 43.333333333333333334
       await time.advanceBlockTo("319")
       await this.factory
         .connect(this.alice)
         .deposit(0, "10", { from: this.alice.address })
-      expect(await this.choc.totalSupply()).to.equal("11000")
-      expect(await this.choc.balanceOf(this.alice.address)).to.equal("5666")
+      expect(await this.choc.totalSupply()).to.equal(
+        ethers.utils.parseUnits("110", 18)
+      )
+      expect(await this.choc.balanceOf(this.alice.address)).to.equal(
+        ethers.utils.parseUnits("56.666666666666666666", 18)
+      )
       expect(await this.choc.balanceOf(this.bob.address)).to.equal("0")
       expect(await this.choc.balanceOf(this.carol.address)).to.equal("0")
-      expect(await this.choc.balanceOf(this.factory.address)).to.equal("4334")
-      expect(await this.choc.balanceOf(this.dev.address)).to.equal("1000")
+      expect(await this.choc.balanceOf(this.factory.address)).to.equal(
+        ethers.utils.parseUnits("43.333333333333333334", 18)
+      )
+      expect(await this.choc.balanceOf(this.dev.address)).to.equal(
+        ethers.utils.parseUnits("10", 18)
+      )
       // Bob withdraws 5 LPs at block 330. At this point:
-      //   Bob should have: 4*2/3*1000 + 2*2/6*1000 + 10*2/7*1000 = 6190
+      //   Bob should have: 4*2/3*10e18 + 2*2/6*10e18 + 10*2/7*10e18 = 6190
       await time.advanceBlockTo("329")
       await this.factory
         .connect(this.bob)
         .withdraw(0, "5", { from: this.bob.address })
-      expect(await this.choc.totalSupply()).to.equal("22000")
-      expect(await this.choc.balanceOf(this.alice.address)).to.equal("5666")
-      expect(await this.choc.balanceOf(this.bob.address)).to.equal("6190")
+      expect(await this.choc.totalSupply()).to.equal(
+        ethers.utils.parseUnits("220", 18)
+      )
+      expect(await this.choc.balanceOf(this.alice.address)).to.equal(
+        ethers.utils.parseUnits("56.666666666666666666", 18)
+      )
+      expect(await this.choc.balanceOf(this.bob.address)).to.equal(
+        ethers.utils.parseUnits("61.904761904761904761", 18)
+      )
       expect(await this.choc.balanceOf(this.carol.address)).to.equal("0")
-      expect(await this.choc.balanceOf(this.factory.address)).to.equal("8144")
-      expect(await this.choc.balanceOf(this.dev.address)).to.equal("2000")
+      expect(await this.choc.balanceOf(this.factory.address)).to.equal(
+        ethers.utils.parseUnits("81.428571428571428573", 18)
+      )
+      expect(await this.choc.balanceOf(this.dev.address)).to.equal(
+        ethers.utils.parseUnits("20", 18)
+      )
       // Alice withdraws 20 LPs at block 340.
       // Bob withdraws 15 LPs at block 350.
       // Carol withdraws 30 LPs at block 360.
@@ -291,14 +309,24 @@ describe("ChocFactory", function() {
       await this.factory
         .connect(this.carol)
         .withdraw(0, "30", { from: this.carol.address })
-      expect(await this.choc.totalSupply()).to.equal("55000")
-      expect(await this.choc.balanceOf(this.dev.address)).to.equal("5000")
+      expect(await this.choc.totalSupply()).to.equal(
+        ethers.utils.parseUnits("550", 18)
+      )
+      expect(await this.choc.balanceOf(this.dev.address)).to.equal(
+        ethers.utils.parseUnits("50", 18)
+      )
       // Alice should have: 5666 + 10*2/7*1000 + 10*2/6.5*1000 = 11600
-      expect(await this.choc.balanceOf(this.alice.address)).to.equal("11600")
+      expect(await this.choc.balanceOf(this.alice.address)).to.equal(
+        ethers.utils.parseUnits("116.007326007326007325", 18)
+      )
       // Bob should have: 6190 + 10*1.5/6.5 * 1000 + 10*1.5/4.5*1000 = 11831
-      expect(await this.choc.balanceOf(this.bob.address)).to.equal("11831")
+      expect(await this.choc.balanceOf(this.bob.address)).to.equal(
+        ethers.utils.parseUnits("118.315018315018315017", 18)
+      )
       // Carol should have: 2*3/6*1000 + 10*3/7*1000 + 10*3/6.5*1000 + 10*3/4.5*1000 + 10*1000 = 26568
-      expect(await this.choc.balanceOf(this.carol.address)).to.equal("26568")
+      expect(await this.choc.balanceOf(this.carol.address)).to.equal(
+        ethers.utils.parseUnits("265.677655677655677656", 18)
+      )
       // All of them should have 1000 LPs back.
       expect(await this.lp.balanceOf(this.alice.address)).to.equal("1000")
       expect(await this.lp.balanceOf(this.bob.address)).to.equal("1000")
@@ -310,14 +338,13 @@ describe("ChocFactory", function() {
       this.factory = await this.ChocFactory.deploy(
         this.choc.address,
         this.dev.address,
-        "100",
-        "400",
-        "1000"
+        "100"
       )
       await this.choc.transferOwnership(this.factory.address)
       await this.lp
         .connect(this.alice)
         .approve(this.factory.address, "1000", { from: this.alice.address })
+
       await this.lp2
         .connect(this.bob)
         .approve(this.factory.address, "1000", { from: this.bob.address })
@@ -331,61 +358,27 @@ describe("ChocFactory", function() {
       // Add LP2 to the pool with allocation 2 at block 420
       await time.advanceBlockTo("419")
       await this.factory.add("20", this.lp2.address, true)
-      // Alice should have 10*1000 pending reward
+      // Alice should have 10*10e18 pending reward
       expect(await this.factory.pendingChoc(0, this.alice.address)).to.equal(
-        "10000"
+        ethers.utils.parseUnits("100", 18)
       )
-      // Bob deposits 10 LP2s at block 425
+      // Bob deposits 5 LP2s at block 425
       await time.advanceBlockTo("424")
       await this.factory
         .connect(this.bob)
         .deposit(1, "5", { from: this.bob.address })
-      // Alice should have 10000 + 5*1/3*1000 = 11666 pending reward
+      // Alice should have 10e18 + 5*1/3*10e18  pending reward
       expect(await this.factory.pendingChoc(0, this.alice.address)).to.equal(
-        "11666"
+        ethers.utils.parseUnits("116.666666666666666666", 18)
       )
       await time.advanceBlockTo("430")
-      // At block 430. Bob should get 5*2/3*1000 = 3333. Alice should get ~1666 more.
+      // At block 430. Bob should get 5*2/3*1318. Alice should get ~1666 more.
       expect(await this.factory.pendingChoc(0, this.alice.address)).to.equal(
-        "13333"
+        ethers.utils.parseUnits("133.333333333333333333", 18)
       )
       expect(await this.factory.pendingChoc(1, this.bob.address)).to.equal(
-        "3333"
+        ethers.utils.parseUnits("33.333333333333333333", 18)
       )
-    })
-
-    it("should stop giving bonus CHOCs after the bonus period ends", async function() {
-      // 100 per block farming rate starting at block 500 with bonus until block 600
-      this.factory = await this.ChocFactory.deploy(
-        this.choc.address,
-        this.dev.address,
-        "100",
-        "500",
-        "600"
-      )
-      await this.choc.transferOwnership(this.factory.address)
-      await this.lp
-        .connect(this.alice)
-        .approve(this.factory.address, "1000", { from: this.alice.address })
-      await this.factory.add("1", this.lp.address, true)
-      // Alice deposits 10 LPs at block 590
-      await time.advanceBlockTo("589")
-      await this.factory
-        .connect(this.alice)
-        .deposit(0, "10", { from: this.alice.address })
-      // At block 605, she should have 1000*10 + 100*5 = 10500 pending.
-      await time.advanceBlockTo("605")
-      expect(await this.factory.pendingChoc(0, this.alice.address)).to.equal(
-        "10500"
-      )
-      // At block 606, Alice withdraws all pending rewards and should get 10600.
-      await this.factory
-        .connect(this.alice)
-        .deposit(0, "0", { from: this.alice.address })
-      expect(await this.factory.pendingChoc(0, this.alice.address)).to.equal(
-        "0"
-      )
-      expect(await this.choc.balanceOf(this.alice.address)).to.equal("10600")
     })
   })
 })
