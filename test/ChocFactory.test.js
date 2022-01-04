@@ -380,5 +380,126 @@ describe("ChocFactory", function() {
         ethers.utils.parseUnits("33.333333333333333333", 18)
       )
     })
+
+    it("should decrease inflation rate upon update accurately", async function() {
+      // starting with default inflation rate of 10000 (10.0 CHOC per block)
+      this.factory = await this.ChocFactory.deploy(
+        this.choc.address,
+        this.dev.address,
+        "100"
+      )
+      await this.factory.deployed()
+
+      await this.choc.transferOwnership(this.factory.address)
+      await this.factory.transferOwnership(this.dev.address)
+
+      await this.factory.connect(this.dev).add("100", this.lp.address, true)
+
+      await this.lp
+        .connect(this.bob)
+        .approve(this.factory.address, "1000", { from: this.bob.address })
+
+      await time.advanceBlockTo("449")
+
+      // *** First Round ***
+      await this.factory
+        .connect(this.bob)
+        .deposit(0, "10", { from: this.bob.address }) // block 450
+
+      expect(await this.factory.totalAllocPoint()).to.equal("100")
+
+      expect(await this.choc.balanceOf(this.bob.address)).to.equal("0")
+
+      expect(await this.lp.balanceOf(this.bob.address)).to.equal("990")
+
+      await time.advanceBlockTo("454")
+
+      await this.factory
+        .connect(this.bob)
+        .withdraw(0, "10", { from: this.bob.address }) // block 455
+
+      expect(await this.choc.balanceOf(this.bob.address)).to.equal(
+        ethers.utils.parseUnits("50", 18)
+      )
+      await time.advanceBlockTo("469")
+      // increase the inflation rate from 10000 to 20000 from block 570
+      await this.factory.connect(this.dev).adjustEconomy("570", 20000)
+
+      await time.advanceBlockTo("499")
+
+      expect(await this.factory.pendingChoc(0, this.bob.address)).to.equal("0")
+
+      // *** Second Round ***
+      await this.factory
+        .connect(this.bob)
+        .deposit(0, "10", { from: this.bob.address }) // block 500
+
+      await time.advanceBlockTo("504")
+
+      // even though inflation rate is increased, it shouldn't be applied until block 570
+      await this.factory
+        .connect(this.bob)
+        .withdraw(0, "10", { from: this.bob.address }) // block 505
+
+      // Harvest should be (10 * 5) + (10 * 5) = 100
+      expect(await this.choc.balanceOf(this.bob.address)).to.equal(
+        ethers.utils.parseUnits("100", 18)
+      )
+
+      await time.advanceBlockTo("566")
+
+      // *** Third Round ***
+      await this.factory
+        .connect(this.bob)
+        .deposit(0, "10", { from: this.bob.address }) // block 567
+      await time.advanceBlockTo("568")
+      expect(await this.factory.pendingChoc(0, this.bob.address)).to.equal(
+        ethers.utils.parseUnits("10", 18)
+      )
+      await time.advanceBlockTo("569")
+      expect(await this.factory.pendingChoc(0, this.bob.address)).to.equal(
+        ethers.utils.parseUnits("20", 18)
+      )
+      await time.advanceBlockTo("570") // not yet!
+      expect(await this.factory.pendingChoc(0, this.bob.address)).to.equal(
+        ethers.utils.parseUnits("30", 18)
+      )
+      // from here inflation should take place and incrase the rate
+      await time.advanceBlockTo("571")
+      expect(await this.factory.pendingChoc(0, this.bob.address)).to.equal(
+        ethers.utils.parseUnits("50", 18)
+      )
+      await time.advanceBlockTo("579")
+
+      await this.factory
+        .connect(this.bob)
+        .withdraw(0, "10", { from: this.bob.address }) // block 580
+
+      // Pay attention that we have 100 CHOCs from previous rounds
+      // 100 + ((570 - 567) * 10) + ((580 - 570) * 20) = 100 + 230 = 330
+      expect(await this.choc.balanceOf(this.bob.address)).to.equal(
+        ethers.utils.parseUnits("330", 18)
+      )
+
+      // let's do another round to make sure it works also after pool update
+      await time.advanceBlockTo("584")
+      // *** 4th Round ***
+      await this.factory
+        .connect(this.bob)
+        .deposit(0, "10", { from: this.bob.address }) // block 585
+      await time.advanceBlockTo("586")
+      expect(await this.factory.pendingChoc(0, this.bob.address)).to.equal(
+        ethers.utils.parseUnits("20", 18)
+      )
+      await time.advanceBlockTo("589")
+      await this.factory
+        .connect(this.bob)
+        .deposit(0, "0", { from: this.bob.address }) // block 590
+
+      // 330 + (590 - 585) * 20 = 430
+      expect(await this.choc.balanceOf(this.bob.address)).to.equal(
+        ethers.utils.parseUnits("430", 18)
+      )
+    })
   })
 })
