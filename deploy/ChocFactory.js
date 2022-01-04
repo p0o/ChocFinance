@@ -7,14 +7,7 @@ module.exports = async function({ ethers, deployments, getNamedAccounts }) {
 
   const { address } = await deploy("ChocFactory", {
     from: deployer,
-    args: [
-      choc.address,
-      dev,
-      // 10 CHOCs per block
-      "10000000000000000000",
-      "0",
-      "1000000000000000000000",
-    ],
+    args: [choc.address, dev, "0"],
     log: true,
     deterministicDeployment: false,
   })
