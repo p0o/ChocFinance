@@ -14,8 +14,8 @@ contract EarlyBirdPool {
   // We use a fixed number of 600 blocks to determine 1 hour, not block.timestamp
   uint256 chocsPerHour = 10;
 
-  event BchDeposited(uint256 amount);
-  event BchExited();
+  event BchDeposited(address staker, uint256 amount);
+  event BchExited(address staker, uint256 amount, uint256 reward);
 
   struct Stake {
     uint256 amount;
@@ -67,7 +67,7 @@ contract EarlyBirdPool {
       staker.amount = _amount;
       staker.fromBlock = block.number;
     }
-    emit BchDeposited(_amount);
+    emit BchDeposited(_staker, _amount);
   }
 
   function _safeSend(address _to, uint256 _amount) private {
@@ -99,10 +99,10 @@ contract EarlyBirdPool {
     _safeSend(msg.sender, stakerAmount);
 
     // Mint rewards
-    choc.mintEarlyBird(msg.sender, pending.sub(pending.div(10)));
+    choc.mintEarlyBird(msg.sender, pending);
     choc.mintEarlyBird(chocDev, pending.div(10));
 
-    emit BchExited();
+    emit BchExited(msg.sender, stakerAmount, pending);
   }
 
   function setDev(address _chocDev) external {
